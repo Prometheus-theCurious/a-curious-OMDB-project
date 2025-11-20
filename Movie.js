@@ -1,5 +1,6 @@
+getMovies();
 async function getMovies() {
-    var title = "";
+    var title = document.getElementById("Cerca").innerText;
     const apikey = "abdfd060"
     const url = `http://www.omdbapi.com/?&apikey=${apikey}&s=${title}`;
     try {
@@ -19,4 +20,3 @@ async function getMovies() {
     }
     console.log("dopo esecuzione")
   }
-  getMovies();
