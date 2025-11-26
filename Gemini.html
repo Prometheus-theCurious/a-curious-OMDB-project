@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OMDB Movie Search</title>
+    <!-- Load Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the JSON output area */
+        .json-output {
+            white-space: pre-wrap; /* Preserve formatting and wrap long lines */
+            word-wrap: break-word;
+            font-family: monospace;
+            font-size: 0.875rem; /* sm text size */
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-4 sm:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold text-blue-800">Movie Database Search</h1>
+            <p class="text-gray-600 mt-2">Search for a movie title and view the raw JSON response.</p>
+        </header>
+
+        <!-- Search Form -->
+        <form id="searchForm" class="bg-white p-6 sm:p-8 rounded-xl shadow-lg mb-8 border border-gray-100">
+            <label for="movieTitle" class="block text-lg font-medium text-gray-700 mb-2">Movie Title:</label>
+            <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                <input
+                    type="text"
+                    id="movieTitle"
+                    placeholder="e.g., The Matrix"
+                    required
+                    class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                    value="Inception"
+                >
+                <button
+                    type="submit"
+                    id="Cerca"
+                    class="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-150 transform hover:scale-[1.02]"
+                >
+                    Search Movies
+                </button>
+            </div>
+        </form>
+
+        <!-- Results Area -->
+        <div class="bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-100">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">JSON Output</h2>
+            
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" class="hidden text-center py-4 text-blue-500">
+                <svg class="animate-spin h-5 w-5 mr-3 inline-block" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Fetching data...
+            </div>
+
+            <!-- Error Message Box -->
+            <div id="errorBox" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                <strong class="font-bold">Error:</strong>
+                <span id="errorMessage" class="block sm:inline ml-2"></span>
+            </div>
+            
+            <!-- JSON Visualization Area -->
+            <pre id="myText" class="json-output bg-gray-50 p-4 rounded-lg border border-gray-200 text-gray-800">
+                Enter a movie title and click search to see the OMDB API response here.
+            </pre>
+        </div>
+
+    </div>
+
+    <script>
+        // Use an empty string for the API key if you plan to use this on Canvas.
+        // Otherwise, replace "..." with your actual OMDB API key.
+        const OMDB_API_KEY = "abdfd060"; 
+        const API_URL = "http://www.omdbapi.com/";
+
+        // Get references to DOM elements
+        const form = document.getElementById('searchForm');
+        const titleInput = document.getElementById('movieTitle');
+        const outputElement = document.getElementById('myText');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const errorBox = document.getElementById('errorBox');
+        const errorMessage = document.getElementById('errorMessage');
+
+
+        // Function to hide error and loading messages
+        function resetUI() {
+            errorBox.classList.add('hidden');
+            loadingIndicator.classList.add('hidden');
+            outputElement.innerHTML = '';
+        }
+
+        // Function to display an error
+        function displayError(message) {
+            loadingIndicator.classList.add('hidden');
+            errorBox.classList.remove('hidden');
+            errorMessage.textContent = message;
+            outputElement.textContent = 'Could not fetch data due to an error.';
+        }
+
+        /**
+         * Fetches movie data from the OMDB API and displays the raw JSON response.
+         * @param {Event} e - The form submission event.
+         */
+        async function getMovies(e) {
+            e.preventDefault();
+            resetUI();
+            loadingIndicator.classList.remove('hidden');
+
+            const title = titleInput.value.trim();
+            if (!title) {
+                displayError("Please enter a movie title.");
+                return;
+            }
+
+            // Construct the search URL using the search parameter 's'
+            const url = `${API_URL}?&apikey=${OMDB_API_KEY}&s=${encodeURIComponent(title)}`;
+
+            // Error handling using try/catch
+            try {
+                // 1. Fetch the data
+                const response = await fetch(url); 
+
+                // 2. Check for HTTP errors (e.g., 404, 500)
+                if (!response.ok) {
+                    throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
+                }
+
+                // 3. Parse the JSON body
+                const data = await response.json(); 
+
+                // 4. Check for OMDB API specific error (e.g., Movie not found)
+                if (data.Response === "False") {
+                    throw new Error(`OMDB API Error: ${data.Error}`);
+                }
+                
+                // 5. Success: Visualize the JSON data
+                // JSON.stringify(data, null, 2) is the key to formatting JSON:
+                //   - 'data': The JavaScript object to convert.
+                //   - 'null': A replacer function (null means don't use one).
+                //   - '2': The number of spaces to use for indentation (pretty-printing).
+                outputElement.textContent = JSON.stringify(data, null, 2); 
+                console.log("Data successfully fetched and visualized.");
+
+            } catch (error) {
+                // Catches fetch errors and custom errors thrown above
+                displayError(error.message);
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        // Attach the event listener to the form submission
+        form.addEventListener('submit', getMovies);
+    </script>
+</body>
+</html>
