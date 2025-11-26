@@ -1,6 +1,7 @@
 getMovies();
 async function getMovies() {
-    var title = document.getElementById("Cerca").innerText;
+    let text = document.getElementById("myText").innerHTML;
+    let title = document.getElementById("Cerca").innerText;
     const apikey = "abdfd060"
     const url = `http://www.omdbapi.com/?&apikey=${apikey}&s=${title}`;
     try {
@@ -12,7 +13,7 @@ async function getMovies() {
 
         return res.json();
       });
-      console.log(response);
+      text = JSON.stringify(response);
       var imdbID = response.imdbID; 
       } 
     catch (error) {
